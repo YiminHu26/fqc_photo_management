@@ -11,10 +11,16 @@ register_heif_opener()
 
 
 TRANSPORTATION_CELL_PATTERN = re.compile(
-    r"(?<![A-Za-z0-9])(?:QZ|[QWTZ])[A-Z0-9]*\d+(?:[.](?:R|B|Y))?(?:\+(?:QZ|[QWTZ])[A-Z0-9]*\d+(?:[.](?:R|B|Y))?)*(?![A-Za-z0-9])"
+    r"(?<![A-Za-z0-9])(?:QZ|[QWTZ])[A-Z]*\d{1,2}(?:[.](?:R|B|Y)|(?:R|B|Y))?(?:\+(?:QZ|[QWTZ])[A-Z]*\d{1,2}(?:[.](?:R|B|Y)|(?:R|B|Y))?)*(?![A-Za-z0-9])"
 )
 PROJECT_ID_PATTERN = re.compile(r"(?<!\d)(\d{6})(?!\d)")
-BAY_ID_PATTERN = re.compile(r"(?<![A-Za-z0-9])([A-N][A-N0-9]*\d+)(?![A-Za-z0-9])")
+BAY_ID_PATTERN = re.compile(
+    r"(?<![A-Za-z0-9])([A-N]+\d{1,2}(?:[.\-_]\d)?(?:-[A-N]+\d+)?)(?![A-Za-z0-9])"
+)
+
+
+def normalize_ocr_text(text: str) -> str:
+    return text.replace("＋", "+").replace("O", "0").replace("o", "0")
 
 
 def extract_cell_symbol(text: str) -> str | None:
@@ -22,23 +28,23 @@ def extract_cell_symbol(text: str) -> str | None:
     if not text:
         return None
 
-    normalized = text.replace("＋", "+")
+    normalized = normalize_ocr_text(text)
     match = TRANSPORTATION_CELL_PATTERN.search(normalized)
     return match.group(0) if match else None
 
 
 def extract_project_id(text: str) -> str | None:
-    match = PROJECT_ID_PATTERN.search(text)
+    match = PROJECT_ID_PATTERN.search(normalize_ocr_text(text))
     return match.group(1) if match else None
 
 
 def extract_bay_id(text: str) -> str | None:
-    match = BAY_ID_PATTERN.search(text)
+    match = BAY_ID_PATTERN.search(normalize_ocr_text(text))
     return match.group(1) if match else None
 
 
 def extract_fields(text: str) -> dict[str, str | None]:
-    normalized = text.replace("＋", "+")
+    normalized = normalize_ocr_text(text)
 
     return {
         "project_id": extract_project_id(normalized),
