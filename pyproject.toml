@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "pillow-heif>=1.1.0",
     "rapidocr-onnxruntime>=1.4.4",
 ]
 
