@@ -3,14 +3,18 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from PIL import Image
+from pillow_heif import register_heif_opener
 from rapidocr_onnxruntime import RapidOCR
+
+register_heif_opener()
 
 
 TRANSPORTATION_CELL_PATTERN = re.compile(
     r"(?<![A-Za-z0-9])(?:QZ|[QWTZ])[A-Z0-9]*\d+(?:[.](?:R|B|Y))?(?:\+(?:QZ|[QWTZ])[A-Z0-9]*\d+(?:[.](?:R|B|Y))?)*(?![A-Za-z0-9])"
 )
 PROJECT_ID_PATTERN = re.compile(r"(?<!\d)(\d{6})(?!\d)")
-BAY_ID_PATTERN = re.compile(r"(?<![A-Za-z0-9])((?!(?:QZ|Q|W|T|Z))[A-Z][A-Z0-9]*\d+)(?![A-Za-z0-9])")
+BAY_ID_PATTERN = re.compile(r"(?<![A-Za-z0-9])([A-N][A-N0-9]*\d+)(?![A-Za-z0-9])")
 
 
 def extract_cell_symbol(text: str) -> str | None:
@@ -43,6 +47,13 @@ def extract_fields(text: str) -> dict[str, str | None]:
     }
 
 
+def convert_heic_to_png(img_path: Path) -> Path:
+    png_path = img_path.with_name(f"{img_path.stem}__ocr.png")
+    with Image.open(img_path) as image:
+        image.convert("RGB").save(png_path, format="PNG")
+    return png_path
+
+
 def main() -> None:
     project_root = Path(__file__).resolve().parents[2]
     assets_dir = project_root / "assets"
@@ -53,7 +64,11 @@ def main() -> None:
 
     ocr = RapidOCR()
     image_files = sorted(
-        p for p in assets_dir.iterdir() if p.is_file() and p.suffix.lower() in {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff"}
+        p
+        for p in assets_dir.iterdir()
+        if p.is_file()
+        and p.suffix.lower() in {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".heic"}
+        and not p.name.endswith("__ocr.png")
     )
 
     if not image_files:
@@ -65,7 +80,16 @@ def main() -> None:
     last_good_bay_id: str | None = None
     last_good_cell_symbol: str | None = None
 
-    for img_path in image_files:
+    for source_path in image_files:
+        img_path = source_path
+        if source_path.suffix.lower() == ".heic":
+            try:
+                img_path = convert_heic_to_png(source_path)
+                print(f"转换: {source_path.name} -> {img_path.name}")
+            except (OSError, ValueError) as exc:
+                print(f"转换失败: {source_path.name}: {exc}")
+                continue
+
         result, elapse = ocr(str(img_path))
 
         if result is None:
