@@ -144,6 +144,13 @@ def main() -> None:
         target_dir.mkdir(parents=True, exist_ok=True)
         organized_path = target_dir / target_path.name
         if target_path != organized_path:
+            duplicate_index = 0
+            while organized_path.exists():
+                duplicate_index += 1
+                organized_path = target_dir / (
+                    f"{target_path.stem}({duplicate_index}){target_path.suffix}"
+                )
+
             try:
                 target_path.rename(organized_path)
                 print(f"归类: {target_path.name} -> {organized_path}")
