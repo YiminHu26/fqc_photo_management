@@ -74,6 +74,9 @@ def main() -> None:
                 continue
 
             fallback_index += 1
+            project_id = last_good_project_id
+            bay_id = last_good_bay_id
+            transportation_cell_symbol = last_good_cell_symbol
             new_name = f"{last_good_project_id}_{last_good_bay_id}_{last_good_cell_symbol}_{fallback_index}"
             target_path = img_path.with_name(new_name + img_path.suffix)
             print(f"{img_path.name}: 未识别到内容，按上一条成功记录重命名为 {target_path.name}")
@@ -95,6 +98,9 @@ def main() -> None:
                 print(f"{img_path.name}: 识别成功，准备重命名为 {target_path.name}")
             elif last_good_project_id is not None and last_good_bay_id is not None and last_good_cell_symbol is not None:
                 fallback_index += 1
+                project_id = last_good_project_id
+                bay_id = last_good_bay_id
+                transportation_cell_symbol = last_good_cell_symbol
                 new_name = f"{last_good_project_id}_{last_good_bay_id}_{last_good_cell_symbol}_{fallback_index}"
                 target_path = img_path.with_name(new_name + img_path.suffix)
                 print(f"{img_path.name}: 识别字段不完整，按上一条成功记录重命名为 {target_path.name}")
@@ -108,6 +114,17 @@ def main() -> None:
                 print(f"重命名: {img_path.name} -> {target_path.name}")
             except OSError as exc:
                 print(f"重命名失败: {img_path.name} -> {target_path.name}: {exc}")
+                continue
+
+        target_dir = assets_dir / project_id / bay_id / transportation_cell_symbol
+        target_dir.mkdir(parents=True, exist_ok=True)
+        organized_path = target_dir / target_path.name
+        if target_path != organized_path:
+            try:
+                target_path.rename(organized_path)
+                print(f"归类: {target_path.name} -> {organized_path}")
+            except OSError as exc:
+                print(f"归类失败: {target_path.name} -> {organized_path}: {exc}")
 
         if result is not None:
             elapsed_value = sum(elapse) if elapse is not None else 0.0

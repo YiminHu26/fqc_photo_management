@@ -8,3 +8,6 @@ wheels/
 
 # Virtual environments
 .venv
+
+# OCR images and generated output
+assets/

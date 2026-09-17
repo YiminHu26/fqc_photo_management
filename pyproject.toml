@@ -5,7 +5,6 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
-    "easyocr>=1.7.2",
     "rapidocr-onnxruntime>=1.4.4",
 ]
 
