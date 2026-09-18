@@ -13,7 +13,7 @@ register_heif_opener()
 TRANSPORTATION_CELL_PATTERN = re.compile(
     r"(?<![A-Za-z0-9])(?:QZ|[QWTZ])[A-Z]*\d{1,2}(?:[.](?:R|B|Y)|(?:R|B|Y))?(?:\+(?:QZ|[QWTZ])[A-Z]*\d{1,2}(?:[.](?:R|B|Y)|(?:R|B|Y))?)*(?![A-Za-z0-9])"
 )
-PROJECT_ID_PATTERN = re.compile(r"(?<!\d)(\d{6})(?!\d)")
+PROJECT_ID_PATTERN = re.compile(r"(?<![A-Za-z0-9-])(\d{6})(?![A-Za-z0-9-])")
 BAY_ID_PATTERN = re.compile(
     r"(?<![A-Za-z0-9])([A-N]+\d{1,2}(?:[.\-_]\d)?(?:-[A-N]+\d+)?)(?![A-Za-z0-9])"
 )
