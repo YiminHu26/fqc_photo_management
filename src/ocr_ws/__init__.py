@@ -87,29 +87,27 @@ def main() -> None:
     last_good_cell_symbol: str | None = None
 
     for source_path in image_files:
-        img_path = source_path
+        ocr_path = source_path
         if source_path.suffix.lower() == ".heic":
             try:
-                img_path = convert_heic_to_png(source_path)
-                print(f"转换: {source_path.name} -> {img_path.name}")
+                ocr_path = convert_heic_to_png(source_path)
+                print(f"转换: {source_path.name} -> {ocr_path.name}")
             except (OSError, ValueError) as exc:
                 print(f"转换失败: {source_path.name}: {exc}")
                 continue
 
-        result, elapse = ocr(str(img_path))
+        result, elapse = ocr(str(ocr_path))
 
         if result is None:
             if last_good_project_id is None or last_good_bay_id is None or last_good_cell_symbol is None:
-                print(f"{img_path.name}: 未识别到内容，且还没有上一条成功记录，跳过重命名")
+                print(f"{source_path.name}: 未识别到内容，且还没有上一条成功记录，跳过归类")
                 continue
 
             fallback_index += 1
             project_id = last_good_project_id
             bay_id = last_good_bay_id
             transportation_cell_symbol = last_good_cell_symbol
-            new_name = f"{last_good_project_id}_{last_good_bay_id}_{last_good_cell_symbol}_{fallback_index}"
-            target_path = img_path.with_name(new_name + img_path.suffix)
-            print(f"{img_path.name}: 未识别到内容，按上一条成功记录重命名为 {target_path.name}")
+            print(f"{source_path.name}: 未识别到内容，按上一条成功记录归类到 {project_id}/{bay_id}/{transportation_cell_symbol}")
         else:
             full_text = " ".join(line[1] for line in result if len(line) > 1)
             fields = extract_fields(full_text)
@@ -123,31 +121,21 @@ def main() -> None:
                 last_good_project_id = project_id
                 last_good_bay_id = bay_id
                 last_good_cell_symbol = transportation_cell_symbol
-                new_name = f"{project_id}_{bay_id}_{transportation_cell_symbol}"
-                target_path = img_path.with_name(new_name + img_path.suffix)
-                print(f"{img_path.name}: 识别成功，准备重命名为 {target_path.name}")
+                print(f"{source_path.name}: 识别成功，准备归类到 {project_id}/{bay_id}/{transportation_cell_symbol}")
             elif last_good_project_id is not None and last_good_bay_id is not None and last_good_cell_symbol is not None:
                 fallback_index += 1
                 project_id = last_good_project_id
                 bay_id = last_good_bay_id
                 transportation_cell_symbol = last_good_cell_symbol
-                new_name = f"{last_good_project_id}_{last_good_bay_id}_{last_good_cell_symbol}_{fallback_index}"
-                target_path = img_path.with_name(new_name + img_path.suffix)
-                print(f"{img_path.name}: 识别字段不完整，按上一条成功记录重命名为 {target_path.name}")
+                print(f"{source_path.name}: 识别字段不完整，按上一条成功记录归类到 {project_id}/{bay_id}/{transportation_cell_symbol}")
             else:
-                print(f"{img_path.name}: 识别字段不完整，且还没有上一条成功记录，跳过重命名")
-                continue
-
-        if img_path != target_path:
-            try:
-                img_path.rename(target_path)
-                print(f"重命名: {img_path.name} -> {target_path.name}")
-            except OSError as exc:
-                print(f"重命名失败: {img_path.name} -> {target_path.name}: {exc}")
+                print(f"{source_path.name}: 识别字段不完整，且还没有上一条成功记录，跳过归类")
                 continue
 
         target_dir = assets_dir / project_id / bay_id / transportation_cell_symbol
         target_dir.mkdir(parents=True, exist_ok=True)
+
+        target_path = source_path
         organized_path = target_dir / target_path.name
         if target_path != organized_path:
             duplicate_index = 0
@@ -163,9 +151,16 @@ def main() -> None:
             except OSError as exc:
                 print(f"归类失败: {target_path.name} -> {organized_path}: {exc}")
 
+        if ocr_path != source_path and ocr_path.exists():
+            try:
+                ocr_path.unlink()
+                print(f"删除临时 OCR 文件: {ocr_path.name}")
+            except OSError as exc:
+                print(f"删除临时 OCR 文件失败: {ocr_path.name}: {exc}")
+
         if result is not None:
             elapsed_value = sum(elapse) if elapse is not None else 0.0
-            print(f"{img_path.name} 识别耗时: {elapsed_value:.3f}s")
+            print(f"{source_path.name} 识别耗时: {elapsed_value:.3f}s")
             print(f"OCR 文本: {full_text[:200]}...")
             print(f"提取字段: {fields}")
         print("-" * 60)
