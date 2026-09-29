@@ -5,7 +5,7 @@ from pathlib import Path
 
 from PIL import Image
 from pillow_heif import register_heif_opener
-from rapidocr_onnxruntime import RapidOCR
+from rapidocr import RapidOCR
 
 register_heif_opener()
 
@@ -71,7 +71,12 @@ def main() -> None:
         print(f"未找到 assets 目录: {assets_dir}")
         return
 
-    ocr = RapidOCR()
+# ========================================================
+    # ocr = RapidOCR()
+    config_path = project_root / "default_rapidocr.yaml"
+    ocr = RapidOCR(config_path=config_path)
+
+# ========================================================
     image_files = sorted(
         p
         for p in assets_dir.iterdir()
@@ -99,9 +104,11 @@ def main() -> None:
                 print(f"转换失败: {source_path.name}: {exc}")
                 continue
 
-        result, elapse = ocr(str(ocr_path))
+        ocr_output = ocr(str(ocr_path))
+        recognized_texts = ocr_output.txts or ()
+        elapse = ocr_output.elapse
 
-        if result is None:
+        if not recognized_texts:
             if last_good_project_id is None or last_good_bay_id is None or last_good_cell_symbol is None:
                 print(f"{source_path.name}: 未识别到内容，且还没有上一条成功记录，跳过归类")
                 continue
@@ -112,7 +119,7 @@ def main() -> None:
             transportation_cell_symbol = last_good_cell_symbol
             print(f"{source_path.name}: 未识别到内容，按上一条成功记录归类到 {project_id}/{bay_id}/{transportation_cell_symbol}")
         else:
-            full_text = " ".join(line[1] for line in result if len(line) > 1)
+            full_text = " ".join(recognized_texts)
             fields = extract_fields(full_text)
 
             project_id = fields.get("project_id")
@@ -161,8 +168,8 @@ def main() -> None:
             except OSError as exc:
                 print(f"删除临时 OCR 文件失败: {ocr_path.name}: {exc}")
 
-        if result is not None:
-            elapsed_value = sum(elapse) if elapse is not None else 0.0
+        if recognized_texts:
+            elapsed_value = elapse
             print(f"{source_path.name} 识别耗时: {elapsed_value:.3f}s")
             print(f"OCR 文本: {full_text[:200]}...")
             print(f"提取字段: {fields}")
