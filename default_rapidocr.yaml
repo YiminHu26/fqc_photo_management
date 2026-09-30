@@ -8,7 +8,7 @@ Global:
 
     use_preprocess_img: true
     min_side_len: 30
-    max_side_len: 800
+    max_side_len: 2000
 
     use_vertical_padding: true
     min_height: 30
